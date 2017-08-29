@@ -1,4 +1,4 @@
-import FontFaceObserver from 'fontfaceobserver';
+import FontFaceObserver from 'fontfaceobserver/fontfaceobserver.js';
 import { select } from 'd3-selection';
 import { csvParseRows } from 'd3-dsv';
 import { timeYears, timeMonths, timeDays, timeHours, timeMinutes } from 'd3-time';
@@ -14,12 +14,12 @@ import {
 import Settings from '../config/chart-settings';
 import bucket from '../config/env';
 
-export function debounce(fn, params, timeout, root) {
+export function debounce(fn, timeout, root) {
   let timeoutID = -1;
   return (() => {
     if (timeoutID > -1) { root.clearTimeout(timeoutID); }
     timeoutID = root.setTimeout(() => {
-      fn(params);
+      fn();
     }, timeout);
   });
 }
@@ -227,14 +227,15 @@ export function csvToTable(target, data) {
     .text(d => d);
 }
 
-export function waitForFonts(fonts) {
-  return new Promise((resolve, reject) => {
-    if (fonts && fonts.length) {
-      Promise.all(fonts.map(f => new FontFaceObserver(f).load()))
-        .then(() => resolve())
-        .catch(() => reject());
-    } else {
-      resolve();
-    }
-  });
+export function waitForFonts(fonts, cb) {
+  if (fonts && fonts.length) {
+    const fontList = fonts.map(f => new FontFaceObserver(`${f}`));
+    Promise.all(fontList.map(f => f.load('$12.34%')))
+      .then(values => {
+        document.documentElement.classList.add(`${Settings.prefix}fonts-loaded`);
+        return cb(values);
+      }, reason => cb(null, reason));
+  } else {
+    return cb([], null);
+  }
 }
